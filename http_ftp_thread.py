@@ -16,6 +16,7 @@ Description:
  "wget "ftp://ftp.muug.mb.ca/mirror/centos/6.7/updates/i386/Packages/firefox-38.3.0-2.el6.centos.i686.rpm" -O firefox-38.3.0-2.el6.centos.i686.rpm.b"
  "md5sum firefox-38.3.0-2.el6.centos.i686.rpm*"
  Of course, compare the time they lost.
+ (1)debug option (2)rate current
 '''
 
 
