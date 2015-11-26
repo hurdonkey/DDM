@@ -116,7 +116,11 @@ def getlen(url):
         request=urllib2.Request(url)                    #发送HEAD请求 只从服务器获取头信息
         #request.get_method=get_method_head              #get_method是函数 要用函数直接赋值
         request.get_method=lambda : 'HEAD'
-        response=urllib2.urlopen(request)
+        try:
+                response=urllib2.urlopen(request)
+        except:
+                print "Connect HTTP server error"
+                exit(0)
         #print response.info()
         #print response.code
 
@@ -158,7 +162,11 @@ def http_down(url, fd_save, range_start, range_end, n_thread):
         ''' thread function: download HTTP target with range request '''
         request=urllib2.Request(url)
         request.headers['Range']='bytes=%s-%s' % (range_start, range_end)
-        response=urllib2.urlopen(request)
+        try:
+                response=urllib2.urlopen(request)
+        except:
+                print "Connect HTTP server error"
+                exit(0)
         #print response.info()
         #print response.code
 
