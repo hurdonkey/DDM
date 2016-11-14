@@ -1,4 +1,4 @@
-# A HTTP & FTP downloader script with python threading.
+# A HTTP & FTP downloader script with python threading
 ## Description
 Just send range request, recv and write into file descriptor orderly.
 
@@ -23,4 +23,4 @@ Of course, compare the time they lost.
 
 ## Future
 (1)debug option
-(2)rate current
+(2)rate current not average
