@@ -147,7 +147,7 @@ def ftp_down(oftp, fd_save, range_start, range_end, n_thread):
 
         fd_ftpdata.close()
         ftp_disconnect(fd_ftp)
-        return True
+        return 0
     except Exception as error:
         print error
         return traceback.format_exception(sys.exec_info())
@@ -155,36 +155,40 @@ def ftp_down(oftp, fd_save, range_start, range_end, n_thread):
 
 def http_down(url, fd_save, range_start, range_end, n_thread):
     ''' thread function: download HTTP target with range request '''
-    request = urllib2.Request(url)
-    request.headers['Range'] = 'bytes=%s-%s' % (range_start, range_end)
     try:
-        response = urllib2.urlopen(request)
-    except:
-        print "Connect HTTP server error"
-        exit(0)
-    # print response.info()
-    # print response.code
+        request = urllib2.Request(url)
+        request.headers['Range'] = 'bytes=%s-%s' % (range_start, range_end)
+        try:
+            response = urllib2.urlopen(request)
+        except:
+            print "Connect HTTP server error"
+            exit(0)
+        # print response.info()
+        # print response.code
 
-    offset = range_start
-    while True:
-        content_block = response.read(BUFFSIZE)
-        if content_block is None or content_block == '':
-            print "Thread %d all done: %d-%d" % (n_thread, range_start, range_end)
-            break
+        offset = range_start
+        while True:
+            content_block = response.read(BUFFSIZE)
+            if content_block is None or content_block == '':
+                print "Thread %d all done: %d-%d" % (n_thread, range_start, range_end)
+                break
 
-        global rlock_file
+            global rlock_file
 
-        with rlock_file:  # 用with代替acquire 和 release()
-            fd_save.seek(offset)
-            fd_save.write(content_block)
-            global size_down
-            size_down += len(content_block)
-            # print "Thread %d piece %d done: %d-%d" % (n_thread, i, offset,
-            # offset+len(content_block)-1)
+            with rlock_file:  # 用with代替acquire 和 release()
+                fd_save.seek(offset)
+                fd_save.write(content_block)
+                global size_down
+                size_down += len(content_block)
+                # print "Thread %d piece %d done: %d-%d" % (n_thread, i, offset,
+                # offset+len(content_block)-1)
 
-        offset += len(content_block)
-    response.close()
-    return
+            offset += len(content_block)
+        response.close()
+        return 0
+    except Exception as error:
+        print error
+        return traceback.format_exception(sys.exec_info())
 
 
 def splitsize(len_total, n_thread):
@@ -283,7 +287,7 @@ class MyThread(threading.Thread):
         )
 
     def get_rslt(self):
-        return self.rslt
+        return (self.n_thread, self.rslt)
 
 
 def main():
@@ -353,9 +357,9 @@ def main():
         t.join()
 
     for t in l_thread:
-        rslt = t.get_rslt()
-        if not rslt:
-            print 'Exception' + ': ' + rslt + '! retry!'
+        nt, rslt = t.get_rslt()
+        if rslt != 0 and rslt is not None:
+            print 'Exception in %d: %s! retry!' % (nt, rslt)
             t.start()
             t.join()
 
