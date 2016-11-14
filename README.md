@@ -1,6 +1,6 @@
-# A HTTP & FTP downloader script with python threading
+# A HTTP & FTP downloader script with python threading(支持http和ftp多线程分段的下载脚本)
 ## Description
-Just send range request, recv and write into file descriptor orderly.
+Just send range(http)/rest(ftp) request, recv and write into file descriptor orderly.
 
 ## Using
  - Try `%prog -h` and get help.
@@ -14,7 +14,7 @@ md5sum Firefox-latest-x86_64.tar.bz2*
 
  - Check FTP donwload:
 ```
-$prog -u "ftp://ftp.muug.mb.ca/mirror/centos/6.7/updates/i386/Packages/firefox-38.3.0-2.el6.centos.i686.rpm" -t 2 -o firefox-38.3.0-2.el6.centos.i686.rpm.a
+%prog -u "ftp://ftp.muug.mb.ca/mirror/centos/6.7/updates/i386/Packages/firefox-38.3.0-2.el6.centos.i686.rpm" -t 2 -o firefox-38.3.0-2.el6.centos.i686.rpm.a
 wget "ftp://ftp.muug.mb.ca/mirror/centos/6.7/updates/i386/Packages/firefox-38.3.0-2.el6.centos.i686.rpm" -O firefox-38.3.0-2.el6.centos.i686.rpm.b
 md5sum firefox-38.3.0-2.el6.centos.i686.rpm*
 ```

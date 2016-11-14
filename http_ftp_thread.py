@@ -7,6 +7,7 @@ import urllib
 import urllib2
 import ftplib
 import threading
+import traceback
 import time
 from optparse import OptionParser
 
@@ -98,10 +99,10 @@ def ftp_disconnect(fd_ftp):
 #        return 'HEAD'
 def getlen(url):
     ''' send HEAD request and get HTTP file length '''
-    # response=urllib.urlopen(url)                   #urlopen发送GET请求会将文件全部下载
+    # response=urllib.urlopen(url)                   # urlopen发送GET请求会将文件全部下载
 
-    request = urllib2.Request(url)  # 发送HEAD请求 只从服务器获取头信息
-    # request.get_method=get_method_head              #get_method是函数 要用函数直接赋值
+    request = urllib2.Request(url)                   # 发送HEAD请求 只从服务器获取头信息
+    # request.get_method=get_method_head             # get_method是函数 要用函数直接赋值
     request.get_method = lambda: 'HEAD'
     try:
         response = urllib2.urlopen(request)
@@ -118,32 +119,38 @@ def getlen(url):
 
 def ftp_down(oftp, fd_save, range_start, range_end, n_thread):
     ''' thread function: create ftp data connections, download FTP target with REST and RETR request '''
-    fd_ftp = ftp_connect_login(oftp)
 
-    fd_ftp.voidcmd('TYPE I')
-    fd_ftp.sendcmd('REST %s' % range_start)
-    fd_ftpdata = fd_ftp.transfercmd('RETR %s' % oftp.ftp_path)  # ftp data fd
+    try:
+        fd_ftp = ftp_connect_login(oftp)
 
-    offset = range_start
-    while offset < range_end + 1:
-        if offset > range_end + 1 - BUFFSIZE:
-            content_block = fd_ftpdata.recv(range_end + 1 - offset)
-        else:
-            content_block = fd_ftpdata.recv(BUFFSIZE)
-        global rlock_file
-        with rlock_file:
-            fd_save.seek(offset)
-            fd_save.write(content_block)
-            global size_down
-            size_down += len(content_block)
-            # print "Thread %d piece %d done: %d-%d" % (n_thread, i, offset,
-            # offset+len(content_block)-1)
-        offset += len(content_block)
-    print "Thread %d all done: %d-%d" % (n_thread, range_start, range_end)
+        fd_ftp.voidcmd('TYPE I')
+        fd_ftp.sendcmd('REST %s' % range_start)
+        fd_ftpdata = fd_ftp.transfercmd(
+            'RETR %s' % oftp.ftp_path)  # ftp data fd
 
-    fd_ftpdata.close()
-    ftp_disconnect(fd_ftp)
-    return
+        offset = range_start
+        while offset < range_end + 1:
+            if offset > range_end + 1 - BUFFSIZE:
+                content_block = fd_ftpdata.recv(range_end + 1 - offset)
+            else:
+                content_block = fd_ftpdata.recv(BUFFSIZE)
+            global rlock_file
+            with rlock_file:
+                fd_save.seek(offset)
+                fd_save.write(content_block)
+                global size_down
+                size_down += len(content_block)
+                # print "Thread %d piece %d done: %d-%d" % (n_thread, i, offset,
+                # offset+len(content_block)-1)
+            offset += len(content_block)
+        print "Thread %d all done: %d-%d" % (n_thread, range_start, range_end)
+
+        fd_ftpdata.close()
+        ftp_disconnect(fd_ftp)
+        return True
+    except Exception as error:
+        print error
+        return traceback.format_exception(sys.exec_info())
 
 
 def http_down(url, fd_save, range_start, range_end, n_thread):
@@ -211,7 +218,8 @@ def optioninit():
     ''' get check args and  options '''
     # set option parser
     parser = OptionParser(
-        usage="Usage: %prog [options] -u <url> -o <output> -t <num of threads>"
+        usage="Usage: %prog [options] -u <url> -o <output> -t <num of threads>",
+        version="%prog v0.1",
     )
     parser.add_option(
         "-u", "--url",
@@ -229,22 +237,13 @@ def optioninit():
         default=1,
         help="range with thread number"
     )
-    parser.add_option(
-        "-v", "--version",
-        help="show prog version"
-    )
 
     # get option parser
     (options, args) = parser.parse_args()
-    # print options           #options matched
-    # print args              #else strings no matched
+    # print options  # options matched
+    # print args     # else strings no matched
 
     # check option parser
-    if options.version:
-        print "====== \(^o^)/ ======="
-        print "My Http & FTP downloader with threads. Enjoy it!"
-        print "Version 0.1"
-        exit(0)
     if not options.url or args != []:
         parser.print_help()
         exit(0)
@@ -264,6 +263,27 @@ def diffurltype(url):
     else:
         print "Error url type!"
         exit(0)
+
+
+class MyThread(threading.Thread):
+
+    def __init__(self, func, urloroftp, fd_save, range_start, range_end, n_thread):
+        threading.Thread.__init__(self)
+        self.func = func
+        self.urloroftp = urloroftp
+        self.fd_save = fd_save
+        self.range_start = range_start
+        self.range_end = range_end
+        self.n_thread = n_thread
+
+    def run(self):
+        self.rslt = self.func(
+            self.urloroftp, self.fd_save,
+            self.range_start, self.range_end, self.n_thread
+        )
+
+    def get_rslt(self):
+        return self.rslt
 
 
 def main():
@@ -292,27 +312,32 @@ def main():
 
     time_start = time.time()
 
+    # 主进程下载
     # http_down(url, fd_save, 0, 4000, 0)
     # ftp_down(oftp, fd_save, 0, 4000, 0)
 
+    # 但线程下载
     # thread0=threading.Thread(target=http_down, args=(url, fd_save, 0, 4000, 0))
     # thread0=threading.Thread(target=ftp_down, args=(oftp, fd_save, 0, 4000, 0))
     # thread0.start()
     # thread0.join()
 
+    # 多线程下载
     l_thread = []
     i = 0
     while i < n_thread:
         if type == "http":
-            t = threading.Thread(
-                target=http_down,
-                args=(url, fd_save, l_sp[i][0], l_sp[i][1], i)
-            )
+            # t = threading.Thread(
+            #     target=http_down,
+            #     args=(url, fd_save, l_sp[i][0], l_sp[i][1], i)
+            # )
+            t = MyThread(http_down, url, fd_save, l_sp[i][0], l_sp[i][1], i)
         else:
-            t = threading.Thread(
-                target=ftp_down,
-                args=(oftp, fd_save, l_sp[i][0], l_sp[i][1], i)
-            )
+            # t = threading.Thread(
+            #     target=ftp_down,
+            #     args=(oftp, fd_save, l_sp[i][0], l_sp[i][1], i)
+            # )
+            t = MyThread(ftp_down, oftp, fd_save, l_sp[i][0], l_sp[i][1], i)
         l_thread.append(t)
         print 'A downloader thread created: %d-%d' % (l_sp[i][0], l_sp[i][1])
         i += 1
@@ -326,6 +351,13 @@ def main():
     t_stat.join()
     for t in l_thread:
         t.join()
+
+    for t in l_thread:
+        rslt = t.get_rslt()
+        if not rslt:
+            print 'Exception' + ': ' + rslt + '! retry!'
+            t.start()
+            t.join()
 
     fd_save.close()
 
