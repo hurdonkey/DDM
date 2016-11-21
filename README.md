@@ -1,5 +1,6 @@
-# A HTTP & FTP downloader script with python threading(支持http和ftp多线程分段的下载脚本)
 ## Description
+支持http和ftp多线程分段的下载脚本<br>
+A HTTP & FTP downloader script with python threading<br>
 Just send range(http)/rest(ftp) request, recv and write into file descriptor orderly.
 
 ## Using
@@ -20,6 +21,6 @@ md5sum firefox-38.3.0-2.el6.centos.i686.rpm*
 ```
 compare the time they lost.
 
-## TODO
+## Todo
 (1)debug option
 (2)rate current not average
