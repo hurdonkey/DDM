@@ -13,7 +13,7 @@ import requests
 from abc import ABCMeta, abstractmethod, abstractstaticmethod
 
 
-BUFFSIZE = 1024 * 1
+BUFFSIZE = 1024 * 16
 
 class Downloader():
     __metaclass__ = ABCMeta
