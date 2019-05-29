@@ -171,7 +171,7 @@ def main():
     process_num = tasks if tasks < max_process_num else max_process_num
     process_pool = multiprocessing.Pool(process_num)
 
-    # 目标文件 写入锁
+    # 目标文件写入锁
     target_lock = multiprocessing.Manager().Lock()
 
     # 共享Array 保存每个进程 自己下载任务的的已完成长度(size_done_array) 和 总长度(size_full_array)
@@ -197,14 +197,16 @@ def main():
 
         # 完成的任务数
         done_count = 0
+
         for i in range(len(size_full_array)):
             current_size = size_done_array[i]
             total_size = size_full_array[i]
 
-            print(' || %d size downloaded: %d' % (
-                i,
-                current_size,
-                #  , %.2f %% (current_size * 100 / total_size)
+            if total_size == 0:
+                continue
+
+            print(' || %d size downloaded: %.2f %%' % (
+                i, (current_size * 100 / total_size)
             ), end='', flush=True)
 
             if current_size >= total_size and total_size != 0:
