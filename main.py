@@ -31,6 +31,7 @@ class Downloader():
 
     @abstractmethod
     def run_splited_task(self):
+        """ 执行分段下载任务 """
         pass
 
     def split_range(self):
@@ -174,7 +175,7 @@ def main():
     # 目标文件写入锁
     target_lock = multiprocessing.Manager().Lock()
 
-    # 共享Array 保存每个进程 自己下载任务的的已完成长度(size_done_array) 和 总长度(size_full_array)
+    # 共享Array 保存每个进程下载任务的的已完成长度(size_done_array) 和 总长度(size_full_array)
     size_done_array = multiprocessing.Manager().Array('I', [0]*tasks)
     size_full_array = multiprocessing.Manager().Array('I', [0]*tasks)
 
@@ -190,7 +191,6 @@ def main():
     process_pool.close()
 
     # 当前进程主线程打印下载进度
-    # process_pool.join()
     while True:
         # print(size_full_array)
         # print(size_done_array)
@@ -199,6 +199,7 @@ def main():
         done_count = 0
 
         for i in range(len(size_full_array)):
+            # 打印每个进程的完成情况
             current_size = size_done_array[i]
             total_size = size_full_array[i]
 
@@ -211,14 +212,15 @@ def main():
 
             if current_size >= total_size and total_size != 0:
                 done_count += 1
-
         print()
 
         if done_count == len(size_full_array):
+            # 下载完成 退出
             print('Downloaded well done!')
             break
 
         time.sleep(0.2)
+
 
 if __name__ == "__main__":
     main()
