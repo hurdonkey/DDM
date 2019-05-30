@@ -142,26 +142,28 @@ def optioninit():
     parser.add_argument(
         '-o', '--output', help='saved target path', type=str, default="a.out")
     parser.add_argument(
-        '-t', '--tasks', help='number of tasks', type=int, default=1)
+        '-t', '--tasks', help='number of tasks', type=int, default=2)
     return parser.parse_args()
 
 
 def main():
 
     # 获取参数 url 存储的文件名 并发任务数
-    # args = optioninit()
-    # print(args)
-    url = "http://download.firefox.com.cn/releases/firefox/42.0/zh-CN/Firefox-latest-x86_64.tar.bz2"
-    # url = "http://192.168.137.10"
-    output = "a.out"
-    tasks = 2
+    args = optioninit()
+    print(args)
+
+    # localtest
+    # args.url = "http://download.firefox.com.cn/releases/firefox/42.0/zh-CN/Firefox-latest-x86_64.tar.bz2"
+    # # args.url = "http://192.168.137.10"
+    # args.output = "a.out"
+    # args.tasks = 2
 
     # 区别下载类型 声明下载对象
     # if "ftp:":
     #     downloader = FTPDownloader()
     # else:
     #     downloader = HTTPDownloader()
-    downloader = HTTPDownloader(url, output, tasks)
+    downloader = HTTPDownloader(args.url, args.output, args.tasks)
 
     # 计算分割片段的范围
     splited_range_list = downloader.split_range()
@@ -169,15 +171,15 @@ def main():
 
     # 创建进程池
     max_process_num = multiprocessing.cpu_count() * 2
-    process_num = tasks if tasks < max_process_num else max_process_num
+    process_num = args.tasks if args.tasks < max_process_num else max_process_num
     process_pool = multiprocessing.Pool(process_num)
 
     # 目标文件写入锁
     target_lock = multiprocessing.Manager().Lock()
 
     # 共享Array 保存每个进程下载任务的的已完成长度(size_done_array) 和 总长度(size_full_array)
-    size_done_array = multiprocessing.Manager().Array('I', [0]*tasks)
-    size_full_array = multiprocessing.Manager().Array('I', [0]*tasks)
+    size_done_array = multiprocessing.Manager().Array('I', [0] * args.tasks)
+    size_full_array = multiprocessing.Manager().Array('I', [0] * args.tasks)
 
     # 加入任务
     process_ordinal = 0   # 进程序号 和共享Array的位置相对应
@@ -208,7 +210,7 @@ def main():
 
             print(' || %d size downloaded: %.2f %%' % (
                 i, (current_size * 100 / total_size)
-            ), end='', flush=True)
+            ), end='')
 
             if current_size >= total_size and total_size != 0:
                 done_count += 1
